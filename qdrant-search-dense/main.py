@@ -2,8 +2,8 @@ from qdrant_client.models import (
     Distance,
     NamedVector,
     PointStruct,
-    SearchRequest,
     VectorParams,
+    Batch,
 )
 
 from client import SearchClient
@@ -14,57 +14,49 @@ from vectorizer import DenseVectorizer
 def main():
     collection_name = "sample"
     client = SearchClient()
-    dense_params = {
-        "text-dense": VectorParams(
+
+    # create collection
+    dense_vectors_config = {
+        "dense": VectorParams(
             size=768,
             distance=Distance.COSINE,
             on_disk=False,
         ),
     }
-    _ = client.create_index(collection_name, dense_params=dense_params)
+    _ = client.create_index(collection_name, vectors_config=dense_vectors_config)
     print(f"index created: {collection_name}")
 
     dense_model_name = "sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco"
     dense_vectorizer = DenseVectorizer(dense_model_name)
     
+    # data load
     texts = get_texts()
+
+    # insert
     points = []
     for point_id, text in enumerate(texts):
         dense_vector = dense_vectorizer.transform(text)
-        dense_values = dense_vector.detach().numpy()
-
-        point = PointStruct(
-            id=point_id,
-            payload={},
-            vector={
-                "text-dense": dense_values.tolist(),
-            }
-        )
+        point = PointStruct(id=point_id, payload={}, vector={"dense": dense_vector})
         points.append(point)
 
-    client.insert(collection_name, points)
+    client.upsert(collection_name, points)
     print(f"data inserted: {len(points)}")
     print()
 
+    # search
     print("search:")
     top_n = 10
-
-    query_dense_vector = dense_vectorizer.transform(text[0])
-    query_dense_values = query_dense_vector.detach().numpy()
-    dense_request = SearchRequest(
-        vector=NamedVector(
-            name="text-dense",
-            vector=query_dense_values.tolist(),
-        ),
-        limit=top_n,
+    dense_vector = dense_vectorizer.transform(text[0])
+    query_vector = NamedVector(
+        name="dense",
+        vector=dense_vector,
     )
-
-    requests = [dense_request]
-    results = client.search(collection_name, requests)
+    results = client.search(collection_name, query_vector, limit=top_n)
 
     print("dense result:")
-    show(results[0])
+    show(results)
 
+    # delete index
     _ = client.delete_index(collection_name)
     print(f"index deleted: {collection_name}")
 

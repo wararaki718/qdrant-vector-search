@@ -1,30 +1,31 @@
 from typing import List, Dict
 
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import PointStruct, ScoredPoint, UpdateResult, SearchRequest, VectorParams
+from qdrant_client.models import NamedVector, PointStruct, ScoredPoint, UpdateResult, VectorParams
 
 
 class SearchClient:
     def __init__(self, host: str="localhost", port: int=6333):
         self._client = QdrantClient(host=host, port=port)
 
-    def create_index(self, collection_name: str, dense_params: Dict[str, VectorParams]) -> bool:
+    def create_index(self, collection_name: str, vectors_config: Dict[str, VectorParams]) -> bool:
         self._client.recreate_collection(
             collection_name=collection_name,
-            vectors_config=dense_params,
+            vectors_config=vectors_config,
         )
     
-    def insert(self, collection_name: str, points: List[PointStruct]) -> UpdateResult:
+    def upsert(self, collection_name: str, points: List[PointStruct]) -> UpdateResult:
         response = self._client.upsert(
             collection_name=collection_name,
-            points=points
+            points=points,
         )
         return response
 
-    def search(self, collection_name: str, requests: List[SearchRequest]) -> List[List[ScoredPoint]]:
-        response = self._client.search_batch(
+    def search(self, collection_name: str, query_vector: NamedVector, limit: int=10) -> List[List[ScoredPoint]]:
+        response = self._client.search(
             collection_name=collection_name,
-            requests=requests,
+            query_vector=query_vector,
+            limit=limit,
         )
         return response
 

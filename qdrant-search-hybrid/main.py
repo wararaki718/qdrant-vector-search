@@ -13,52 +13,52 @@ from qdrant_client.models import (
 from client import SearchClient
 from fusion import reciprocal_rank_fusion
 from utils import get_texts, show
-from vectorizer import SparseVectorizer, DenseVectorizer
+from vectorizer import DenseVectorizer, SparseVectorizer
 
 
 def main():
     collection_name = "sample"
     client = SearchClient()
+
+    # create collection
     dense_params = {
-        "text-dense": VectorParams(
+        "dense": VectorParams(
             size=768,
             distance=Distance.COSINE,
             on_disk=False,
         ),
     }
     sparse_params = {
-        "text-sparse": SparseVectorParams(
+        "sparse": SparseVectorParams(
             index=SparseIndexParams(on_disk=False)
         ),
     }
     _ = client.create_index(collection_name, dense_params=dense_params, sparse_params=sparse_params)
     print(f"index created: {collection_name}")
 
-    sparse_model_name = "naver/splade-cocondenser-ensembledistil"
-    sparse_vectorizer = SparseVectorizer(sparse_model_name)
+    # load data
+    texts = get_texts()
 
+    # index
     dense_model_name = "sebastian-hofstaetter/distilbert-dot-tas_b-b256-msmarco"
     dense_vectorizer = DenseVectorizer(dense_model_name)
-    
-    texts = get_texts()
+
+    sparse_model_name = "naver/splade-cocondenser-ensembledistil"
+    sparse_vectorizer = SparseVectorizer(sparse_model_name)
     points = []
     for point_id, text in enumerate(texts):
-        sparse_vector = sparse_vectorizer.transform(text)
-        sparse_indices = sparse_vector.nonzero().numpy().flatten()
-        sparse_values = sparse_vector.detach().numpy()[sparse_indices]
-
         dense_vector = dense_vectorizer.transform(text)
-        dense_values = dense_vector.detach().numpy()
-
+        sparse_values, sparse_indices = sparse_vectorizer.transform(text)
+        
         point = PointStruct(
             id=point_id,
             payload={},
             vector={
-                "text-sparse": SparseVector(
-                    indices=sparse_indices.tolist(),
-                    values=sparse_values.tolist(),
+                "dense": dense_vector,
+                "sparse": SparseVector(
+                    indices=sparse_indices,
+                    values=sparse_values,
                 ),
-                "text-dense": dense_values.tolist(),
             }
         )
         points.append(point)
@@ -67,44 +67,43 @@ def main():
     print(f"data inserted: {len(points)}")
     print()
 
+    # search
     print("search:")
     top_n = 10
-    query_sparse_vector = sparse_vectorizer.transform(texts[0])
-    query_sparse_indices = query_sparse_vector.nonzero().numpy().flatten()
-    query_sparse_values = query_sparse_vector.detach().numpy()[query_sparse_indices]
+    query_sparse_values, query_sparse_indices = sparse_vectorizer.transform(texts[0])
     sparse_request = SearchRequest(
         vector=NamedSparseVector(
-            name="text-sparse",
+            name="sparse",
             vector=SparseVector(
-                indices=query_sparse_indices.tolist(),
-                values=query_sparse_values.tolist(),
+                indices=query_sparse_indices,
+                values=query_sparse_values,
             ),
         ),
         limit=top_n,
     )
 
     query_dense_vector = dense_vectorizer.transform(text[0])
-    query_dense_values = query_dense_vector.detach().numpy()
     dense_request = SearchRequest(
         vector=NamedVector(
-            name="text-dense",
-            vector=query_dense_values.tolist(),
+            name="dense",
+            vector=query_dense_vector,
         ),
         limit=top_n,
     )
 
-    requests = [sparse_request, dense_request]
+    requests = [dense_request, sparse_request]
     results = client.search(collection_name, requests)
-    print("sparse result:")
+    print("dense result:")
     show(results[0])
 
-    print("dense result:")
+    print("sparse result:")
     show(results[1])
 
     print("hybrid result (reciprocal rank fusion):")
     hybrid_results = reciprocal_rank_fusion(results)
     show(hybrid_results[:top_n])
 
+    # delete index
     _ = client.delete_index(collection_name)
     print(f"index deleted: {collection_name}")
 

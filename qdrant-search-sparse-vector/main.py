@@ -8,7 +8,7 @@ from qdrant_client.models import (
 
 from client import SearchClient
 from utils import get_texts, show
-from vectorizer import TextVectorizer
+from vectorizer import SparseVectorizer
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
 
     # insert
     model_name = "naver/splade-cocondenser-ensembledistil"
-    vectorizer = TextVectorizer(model_name)
+    vectorizer = SparseVectorizer(model_name)
     points = []
     for point_id, text in enumerate(texts):
         text_values, text_indices = vectorizer.transform(text)

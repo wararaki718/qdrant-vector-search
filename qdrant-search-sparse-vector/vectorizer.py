@@ -4,7 +4,7 @@ import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 
-class TextVectorizer:
+class SparseVectorizer:
     def __init__(self, model_name: str) -> None:
         self._tokenizer = AutoTokenizer.from_pretrained(model_name)
         self._model = AutoModelForMaskedLM.from_pretrained(model_name)

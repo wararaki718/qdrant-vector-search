@@ -4,6 +4,7 @@ from qdrant_client.models import (
     NamedSparseVector,
     PointStruct,
     SparseIndexParams,
+    SearchParams,
     SearchRequest,
     SparseVectorParams,
     VectorParams,
@@ -85,6 +86,7 @@ def main():
             name="sparse",
             vector=query_sparse_vector,
         ),
+        params=SearchParams(hnsw_ef=128, exact=False),
         limit=top_n,
     )
 

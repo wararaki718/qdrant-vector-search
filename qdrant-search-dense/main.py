@@ -2,6 +2,7 @@ from qdrant_client.models import (
     Distance,
     NamedVector,
     PointStruct,
+    SearchParams,
     VectorParams,
 )
 
@@ -50,7 +51,8 @@ def main():
         name="dense",
         vector=dense_vector,
     )
-    results = client.search(collection_name, query_vector, limit=top_n)
+    search_params = SearchParams(hnsw_ef=128, exact=False)
+    results = client.search(collection_name, query_vector, search_params, limit=top_n)
 
     print("dense result:")
     show(results)

@@ -77,6 +77,7 @@ def main():
             name="dense",
             vector=query_dense_vector,
         ),
+        params=SearchParams(hnsw_ef=128, exact=False),
         limit=top_n,
     )
 
@@ -86,7 +87,6 @@ def main():
             name="sparse",
             vector=query_sparse_vector,
         ),
-        params=SearchParams(hnsw_ef=128, exact=False),
         limit=top_n,
     )
 

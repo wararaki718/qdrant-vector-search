@@ -3,7 +3,6 @@ from qdrant_client.models import (
     NamedVector,
     PointStruct,
     VectorParams,
-    Batch,
 )
 
 from client import SearchClient

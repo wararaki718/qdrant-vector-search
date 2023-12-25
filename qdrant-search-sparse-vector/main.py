@@ -16,12 +16,12 @@ def main():
     client = SearchClient()
 
     # create collection
-    params = {
+    sparse_vectors_config = {
         "sparse": SparseVectorParams(
             index=SparseIndexParams(on_disk=False)
         ),
     }
-    _ = client.create_index(collection_name, sparse_params=params)
+    _ = client.create_index(collection_name, sparse_vectors_config=sparse_vectors_config)
     print(f"index created: {collection_name}")
 
     # load data
@@ -32,17 +32,8 @@ def main():
     vectorizer = SparseVectorizer(model_name)
     points = []
     for point_id, text in enumerate(texts):
-        text_values, text_indices = vectorizer.transform(text)
-        point = PointStruct(
-            id=point_id,
-            payload={},
-            vector={
-                "sparse": SparseVector(
-                    indices=text_indices,
-                    values=text_values,
-                )
-            }
-        )
+        text_vector = vectorizer.transform(text)
+        point = PointStruct(id=point_id, payload={}, vector={"sparse": text_vector})
         points.append(point)
 
     client.insert(collection_name, points)
@@ -52,14 +43,8 @@ def main():
     # search
     print("search:")
     top_n = 10
-    query_values, query_indices = vectorizer.transform(texts[0])
-    query = NamedSparseVector(
-        name="sparse",
-        vector=SparseVector(
-            indices=query_indices,
-            values=query_values,
-        ),
-    )
+    query_vector = vectorizer.transform(texts[0])
+    query = NamedSparseVector(name="sparse", vector=query_vector)
     results = client.search(collection_name, query, limit=top_n)
     show(results)
 

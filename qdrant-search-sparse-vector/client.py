@@ -8,11 +8,11 @@ class SearchClient:
     def __init__(self, host: str="localhost", port: int=6333):
         self._client = QdrantClient(host=host, port=port)
 
-    def create_index(self, collection_name: str, sparse_params: Dict[str, SparseVectorParams]) -> bool:
+    def create_index(self, collection_name: str, sparse_vectors_config: Dict[str, SparseVectorParams]) -> bool:
         self._client.recreate_collection(
             collection_name=collection_name,
             vectors_config={},
-            sparse_vectors_config=sparse_params,
+            sparse_vectors_config=sparse_vectors_config,
         )
     
     def insert(self, collection_name: str, points: List[PointStruct]) -> UpdateResult:

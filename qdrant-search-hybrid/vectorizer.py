@@ -1,6 +1,7 @@
-from typing import List, Tuple
+from typing import List
 
 import torch
+from qdrant_client.models import SparseVector
 from transformers import AutoModel, AutoModelForMaskedLM, AutoTokenizer
 
 
@@ -21,7 +22,7 @@ class SparseVectorizer:
         self._tokenizer = AutoTokenizer.from_pretrained(model_name)
         self._model = AutoModelForMaskedLM.from_pretrained(model_name)
 
-    def transform(self, text: str) -> Tuple[List[float], List[float]]:
+    def transform(self, text: str) -> SparseVector:
         tokens: dict = self._tokenizer(text, return_tensors="pt")
         output = self._model(**tokens)
 
@@ -30,9 +31,5 @@ class SparseVectorizer:
         embeddings = embeddings.squeeze()
         
         indices = embeddings.nonzero().squeeze().tolist()
-        vectors = embeddings[indices].tolist()
-
-        return vectors, indices
-
-    def get_vocabs(self) -> dict:
-        return self._tokenizer.get_vocab()
+        values = embeddings[indices].tolist()
+        return SparseVector(indices=indices, values=values)

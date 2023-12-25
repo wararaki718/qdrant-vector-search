@@ -1,11 +1,5 @@
 # Reciprocal Rank Fusion
 
-## setup
-
-```shell
-pip install numpy
-```
-
 ## run
 
 ```shell

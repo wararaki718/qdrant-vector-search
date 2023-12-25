@@ -1,11 +1,11 @@
 from typing import List
 
-from qdrant_client.http.models import ScoredPoint
+from qdrant_client.models import ScoredPoint
 
 
-def show(results: List[ScoredPoint]) -> None:
-    for rank, result in enumerate(results, start=1):
-        print(f"{rank}-th: id={result.id}, score={result.score}")
+def show(points: List[ScoredPoint]) -> None:
+    for rank, point in enumerate(points, start=1):
+        print(f"{rank}-th: id={point.id}, score={point.score}")
     print()
 
 

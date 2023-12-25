@@ -5,7 +5,6 @@ from qdrant_client.models import (
     PointStruct,
     SparseIndexParams,
     SearchRequest,
-    SparseVector,
     SparseVectorParams,
     VectorParams,
 )
@@ -21,19 +20,23 @@ def main():
     client = SearchClient()
 
     # create collection
-    dense_params = {
+    dense_vectors_config = {
         "dense": VectorParams(
             size=768,
             distance=Distance.COSINE,
             on_disk=False,
         ),
     }
-    sparse_params = {
+    sparse_vectors_config = {
         "sparse": SparseVectorParams(
-            index=SparseIndexParams(on_disk=False)
+            index=SparseIndexParams(on_disk=False),
         ),
     }
-    _ = client.create_index(collection_name, dense_params=dense_params, sparse_params=sparse_params)
+    _ = client.create_index(
+        collection_name,
+        vectors_config=dense_vectors_config,
+        sparse_vectors_config=sparse_vectors_config,
+    )
     print(f"index created: {collection_name}")
 
     # load data
@@ -48,17 +51,14 @@ def main():
     points = []
     for point_id, text in enumerate(texts):
         dense_vector = dense_vectorizer.transform(text)
-        sparse_values, sparse_indices = sparse_vectorizer.transform(text)
+        sparse_vector = sparse_vectorizer.transform(text)
         
         point = PointStruct(
             id=point_id,
             payload={},
             vector={
                 "dense": dense_vector,
-                "sparse": SparseVector(
-                    indices=sparse_indices,
-                    values=sparse_values,
-                ),
+                "sparse": sparse_vector,
             }
         )
         points.append(point)
@@ -70,23 +70,20 @@ def main():
     # search
     print("search:")
     top_n = 10
-    query_sparse_values, query_sparse_indices = sparse_vectorizer.transform(texts[0])
-    sparse_request = SearchRequest(
-        vector=NamedSparseVector(
-            name="sparse",
-            vector=SparseVector(
-                indices=query_sparse_indices,
-                values=query_sparse_values,
-            ),
-        ),
-        limit=top_n,
-    )
-
     query_dense_vector = dense_vectorizer.transform(text[0])
     dense_request = SearchRequest(
         vector=NamedVector(
             name="dense",
             vector=query_dense_vector,
+        ),
+        limit=top_n,
+    )
+
+    query_sparse_vector = sparse_vectorizer.transform(texts[0])
+    sparse_request = SearchRequest(
+        vector=NamedSparseVector(
+            name="sparse",
+            vector=query_sparse_vector,
         ),
         limit=top_n,
     )

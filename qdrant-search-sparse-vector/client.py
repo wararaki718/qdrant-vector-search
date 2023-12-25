@@ -1,7 +1,7 @@
 from typing import List, Dict
 
 from qdrant_client import QdrantClient
-from qdrant_client.http.models import PointStruct, ScoredPoint, UpdateResult, SparseVectorParams, NamedSparseVector
+from qdrant_client.models import PointStruct, ScoredPoint, UpdateResult, SparseVectorParams, NamedSparseVector
 
 
 class SearchClient:
@@ -22,10 +22,11 @@ class SearchClient:
         )
         return response
 
-    def search(self, collection_name: str, query_vector: NamedSparseVector) -> List[ScoredPoint]:
+    def search(self, collection_name: str, query_vector: NamedSparseVector, limit: int=10) -> List[ScoredPoint]:
         response = self._client.search(
             collection_name=collection_name,
             query_vector=query_vector,
+            limit=limit,
             with_vectors=True,
         )
         return response
